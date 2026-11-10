@@ -1,0 +1,16 @@
+{
+  "name": "mi-ia-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Aplicación Android de inteligencia artificial",
+  "scripts": {
+    "build": "echo Aplicacion preparada"
+  },
+  "dependencies": {
+    "@capacitor/core": "^7.4.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.3",
+    "@capacitor/android": "^7.4.3"
+  }
+}
