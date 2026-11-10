@@ -1,0 +1,817 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>ZenChat Ultra</title>
+
+<style>
+:root{
+ --green:#147a54;--green2:#0d6041;--orange:#e58a3a;
+ --bg:#f7f8f7;--surface:#fff;--text:#202820;
+ --muted:#7b857e;--border:#e5e9e6;--soft:#eff4f0;
+}
+body.dark{
+ --bg:#111713;--surface:#19221c;--text:#edf4ee;
+ --muted:#9aa89e;--border:#303d34;--soft:#25332a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);height:100dvh;overflow:hidden}
+button,textarea,input{font:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}
+.app{height:100dvh;max-width:1100px;margin:auto;background:var(--surface);display:flex;flex-direction:column}
+header{height:65px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 15px;border-bottom:1px solid var(--border);gap:10px}
+.logo{font-size:24px;font-weight:800;letter-spacing:-1px}
+.logo span:first-child{color:var(--green)}
+.logo span:last-child{color:var(--orange)}
+.actions{display:flex;gap:7px;align-items:center}
+.btn{border:1px solid var(--border);background:var(--surface);color:var(--text);padding:10px 12px;border-radius:11px;font-size:13px}
+.icon-btn{width:39px;height:39px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:11px;font-size:19px}
+.layout{flex:1;min-height:0;display:flex}
+.sidebar{width:245px;flex-shrink:0;border-right:1px solid var(--border);padding:13px;display:flex;flex-direction:column;gap:12px;background:var(--bg)}
+.primary{background:var(--green);color:white;border:0;border-radius:11px;padding:13px;font-weight:700}
+.side-title{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:1px;padding:8px 4px}
+.history{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:5px}
+.history-item{display:flex;align-items:center;gap:8px;padding:11px;border:0;border-radius:9px;background:transparent;color:var(--text);text-align:left;font-size:13px}
+.history-item.active,.history-item:hover{background:var(--soft)}
+.history-item span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.delete-chat{border:0;background:transparent;color:var(--muted);font-size:16px}
+.side-bottom{border-top:1px solid var(--border);padding-top:12px;display:grid;gap:8px}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.modebar{display:flex;gap:8px;padding:12px 15px;border-bottom:1px solid var(--border)}
+.mode{flex:1;padding:11px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--muted);font-weight:700;font-size:13px}
+.mode.active{background:var(--soft);border-color:var(--green);color:var(--green)}
+#messages{flex:1;min-height:0;overflow-y:auto;padding:22px;display:flex;flex-direction:column;gap:17px;scroll-behavior:smooth}
+.welcome{margin:auto;text-align:center;max-width:440px;padding:20px}
+.welcome h1{font-size:30px;margin-bottom:12px}
+.welcome h1 span{color:var(--green)}
+.welcome p{font-size:14px;color:var(--muted);line-height:1.6}
+.suggestions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:22px}
+.suggestion{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:20px;padding:10px 13px;font-size:13px}
+.message{max-width:88%;padding:13px 16px;border-radius:16px;line-height:1.6;font-size:15px;white-space:pre-wrap;overflow-wrap:anywhere}
+.user{align-self:flex-end;background:var(--green);color:white;border-bottom-right-radius:4px}
+.bot{align-self:flex-start;background:var(--soft);color:var(--text);border-bottom-left-radius:4px}
+.image-card{align-self:flex-start;max-width:min(90%,540px);padding:10px;background:var(--soft);border-radius:15px}
+.image-card img{width:100%;display:block;border-radius:10px}
+.image-card button{width:100%;margin-top:8px;padding:10px;border:0;border-radius:9px;background:var(--green);color:white}
+.typing{display:flex;gap:5px;padding:15px;background:var(--soft);border-radius:14px;width:max-content}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}
+.typing i:nth-child(3){animation-delay:.3s}
+@keyframes pulse{0%,80%,100%{opacity:.3;transform:translateY(0)}40%{opacity:1;transform:translateY(-4px)}}
+.status{font-size:11px;color:var(--muted);padding:6px 16px;text-align:center}
+.composer{padding:12px 15px max(12px,env(safe-area-inset-bottom));border-top:1px solid var(--border)}
+.preview{display:none;align-items:center;gap:10px;padding:8px;margin-bottom:9px;border:1px solid var(--border);border-radius:10px}
+.preview.active{display:flex}
+.preview img{width:45px;height:45px;object-fit:cover;border-radius:7px}
+.preview span{flex:1;font-size:12px;color:var(--muted)}
+.preview button{border:0;background:none;color:#c55;font-size:20px}
+.inputbox{display:flex;align-items:flex-end;gap:8px;padding:9px;border:1px solid var(--border);border-radius:17px;background:var(--surface)}
+#prompt{flex:1;min-width:0;resize:none;border:0;outline:0;background:transparent;color:var(--text);padding:10px 5px;min-height:40px;max-height:130px;font-size:15px}
+#send,#attach{height:42px;width:42px;border:0;border-radius:12px;font-size:19px}
+#send{background:var(--green);color:white}
+#attach{background:var(--soft);color:var(--green)}
+.footer{text-align:center;color:var(--muted);font-size:11px;margin-top:8px}
+#fileInput{display:none}
+.overlay{position:fixed;inset:0;background:#101a13a8;display:none;align-items:center;justify-content:center;padding:20px;z-index:20}
+.overlay.active{display:flex}
+.modal{width:100%;max-width:400px;background:var(--surface);padding:24px;border-radius:20px}
+.modal h2{margin-bottom:10px}
+.modal p{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:15px}
+.modal input{width:100%;padding:14px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);margin-bottom:10px}
+.modal button{width:100%;padding:13px;border:0;border-radius:10px;background:var(--green);color:white;font-weight:700}
+.modal .cancel{margin-top:8px;background:var(--soft);color:var(--text)}
+#keyStatus{font-size:12px;color:var(--muted);margin-top:12px;line-height:1.5;overflow-wrap:anywhere}
+.modal a{color:var(--green)}
+@media(max-width:650px){
+ .sidebar{display:none}
+ .logo{font-size:21px}
+ header{padding:0 10px}
+ .btn{padding:9px;font-size:11px}
+ #messages{padding:16px}
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+<header>
+ <div class="logo"><span>Zen</span><span>Chat</span></div>
+ <div class="actions">
+  <button class="btn" id="keyButton">API KEY</button>
+  <button class="icon-btn" id="themeButton" title="Cambiar tema">◐</button>
+  <button class="icon-btn" id="sidebarButton" title="Chats">☰</button>
+ </div>
+</header>
+
+<div class="layout">
+ <aside class="sidebar" id="sidebar">
+  <button class="primary" id="createChat">+ Nuevo chat</button>
+  <div class="side-title">CONVERSACIONES</div>
+  <div class="history" id="history"></div>
+  <div class="side-bottom">
+   <button class="btn" id="clearHistory">Limpiar historial</button>
+   <button class="btn" id="aboutButton">Acerca de ZenChat</button>
+  </div>
+ </aside>
+
+ <main class="main">
+  <nav class="modebar">
+   <button class="mode active" id="chatMode">Chat inteligente</button>
+   <button class="mode" id="imageMode">Crear imágenes</button>
+  </nav>
+
+  <div id="messages"></div>
+  <div class="status" id="status">Preparado</div>
+
+  <div class="composer">
+   <div class="preview" id="preview">
+    <img id="previewImg" alt="Imagen adjunta">
+    <span id="previewName"></span>
+    <button id="removeImage">×</button>
+   </div>
+   <div class="inputbox">
+    <button id="attach" title="Adjuntar imagen">+</button>
+    <input id="fileInput" type="file" accept="image/png,image/jpeg,image/webp">
+    <textarea id="prompt" rows="1" placeholder="Escribí tu mensaje..."></textarea>
+    <button id="send">↑</button>
+   </div>
+   <div class="footer">ZenChat Ultra · Inteligencia artificial</div>
+  </div>
+ </main>
+</div>
+</div>
+
+<div class="overlay" id="keyModal">
+ <div class="modal">
+  <h2>Conectar ZenChat</h2>
+  <p>Ingresá tu API Key de Gemini. Se utilizará para el chat y la generación de imágenes.</p>
+  <input id="keyInput" type="password" placeholder="API Key de Gemini" autocomplete="off">
+  <button id="saveKey">Conectar</button>
+  <button class="cancel" id="cancelKey">Cancelar</button>
+  <div id="keyStatus"></div>
+  <p style="margin-top:15px;margin-bottom:0">Obtené tu clave desde <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>.</p>
+ </div>
+</div>
+
+<script>
+"use strict";
+
+const API="https://generativelanguage.googleapis.com/v1beta";
+const $=id=>document.getElementById(id);
+
+const CHAT_PRIORITY=[
+ "gemini-3.8-flash",
+ "gemini-3.7-flash",
+ "gemini-3.6-flash",
+ "gemini-3.5-flash",
+ "gemini-3.5-flash-lite",
+ "gemini-3.1-flash-lite"
+];
+
+const IMAGE_PRIORITY=[
+ "gemini-3.1-flash-image",
+ "gemini-3.1-flash-lite-image",
+ "gemini-3-pro-image",
+ "gemini-2.5-flash-image"
+];
+
+let key="";
+let chatModels=[];
+let imageModels=[];
+let chats=[];
+let currentId=null;
+let mode="chat";
+let busy=false;
+let attachment=null;
+let retryDelay=1200;
+
+const messages=$("messages");
+const prompt=$("prompt");
+
+function uid(){
+ return Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+}
+
+function setStatus(text){
+ $("status").textContent=text;
+}
+
+function sleep(ms){
+ return new Promise(resolve=>setTimeout(resolve,ms));
+}
+
+async function fetchTimeout(url,options={},timeout=60000){
+ const controller=new AbortController();
+ const timer=setTimeout(()=>controller.abort(),timeout);
+ try{
+  return await fetch(url,{...options,signal:controller.signal});
+ }catch(error){
+  if(error.name==="AbortError")throw new Error("Tiempo de espera agotado. Intentá nuevamente.");
+  throw new Error("Error de red. Revisá tu conexión.");
+ }finally{
+  clearTimeout(timer);
+ }
+}
+
+async function responseData(response){
+ let data;
+ try{data=await response.json();}
+ catch{throw new Error("Respuesta no válida del servidor.");}
+ if(!response.ok){
+  const error=new Error(data.error?.message||"Error HTTP "+response.status);
+  error.status=response.status;
+  throw error;
+ }
+ return data;
+}
+
+function isTemporary(error){
+ return [408,429,500,502,503,504].includes(error.status);
+}
+
+/* MODELOS DISPONIBLES */
+
+async function listModels(apiKey){
+ const response=await fetchTimeout(API+"/models?pageSize=100",{
+  headers:{"x-goog-api-key":apiKey}
+ },25000);
+ const data=await responseData(response);
+ return data.models||[];
+}
+
+function orderModels(models,priority,filter){
+ const compatible=models.filter(m=>
+  (m.supportedGenerationMethods||[]).includes("generateContent") &&
+  filter(m)
+ );
+ const result=[];
+ for(const id of priority){
+  const found=compatible.find(m=>m.name==="models/"+id);
+  if(found)result.push(found.name);
+ }
+ compatible.forEach(m=>{
+  if(!result.includes(m.name))result.push(m.name);
+ });
+ return result;
+}
+
+async function connect(apiKey){
+ const models=await listModels(apiKey);
+
+ const chatsFound=orderModels(models,CHAT_PRIORITY,m=>
+  !/image|embedding|audio|tts|veo|live|robotics/i.test(m.name)
+ );
+
+ const imagesFound=orderModels(models,IMAGE_PRIORITY,m=>
+  /image/i.test(m.name)
+ );
+
+ if(!chatsFound.length){
+  throw new Error("Tu clave no tiene modelos de chat compatibles.");
+ }
+
+ return {chatsFound,imagesFound};
+}
+
+/* MENSAJES */
+
+function addText(text,type){
+ const el=document.createElement("div");
+ el.className="message "+type;
+ el.textContent=text;
+ messages.appendChild(el);
+ scrollBottom();
+ return el;
+}
+
+function scrollBottom(){
+ messages.scrollTop=messages.scrollHeight;
+}
+
+function typing(){
+ const el=document.createElement("div");
+ el.id="typing";
+ el.className="typing";
+ el.innerHTML="<i></i><i></i><i></i>";
+ messages.appendChild(el);
+ scrollBottom();
+}
+
+function stopTyping(){
+ $("typing")?.remove();
+}
+
+function addImage(base64,mime){
+ const card=document.createElement("div");
+ card.className="image-card";
+ const img=document.createElement("img");
+ img.src="data:"+mime+";base64,"+base64;
+ img.alt="Imagen generada";
+
+ const button=document.createElement("button");
+ button.textContent="Guardar imagen";
+ button.onclick=()=>{
+  const a=document.createElement("a");
+  a.href=img.src;
+  a.download="ZenChat-"+Date.now()+".png";
+  a.click();
+ };
+ card.append(img,button);
+ messages.appendChild(card);
+ scrollBottom();
+}
+
+/* HISTORIAL LOCAL */
+
+function saveChats(){
+ try{
+  localStorage.setItem("zen_ultra_chats",JSON.stringify(chats));
+ }catch{
+  setStatus("No se pudo guardar el historial local.");
+ }
+}
+
+function loadChats(){
+ try{
+  const saved=JSON.parse(localStorage.getItem("zen_ultra_chats")||"[]");
+  chats=Array.isArray(saved)?saved:[];
+ }catch{
+  chats=[];
+ }
+}
+
+function activeChat(){
+ return chats.find(c=>c.id===currentId);
+}
+
+function createNewChat(){
+ const chat={id:uid(),title:"Nuevo chat",messages:[]};
+ chats.unshift(chat);
+ currentId=chat.id;
+ saveChats();
+ renderHistory();
+ renderChat();
+}
+
+function renderHistory(){
+ const box=$("history");
+ box.innerHTML="";
+ chats.forEach(chat=>{
+  const row=document.createElement("div");
+  row.className="history-item"+(chat.id===currentId?" active":"");
+
+  const title=document.createElement("span");
+  title.textContent=chat.title||"Nuevo chat";
+
+  const del=document.createElement("button");
+  del.className="delete-chat";
+  del.textContent="×";
+  del.title="Eliminar conversación";
+  del.onclick=event=>{
+   event.stopPropagation();
+   chats=chats.filter(c=>c.id!==chat.id);
+   if(currentId===chat.id)currentId=chats[0]?.id||null;
+   if(!currentId)createNewChat();
+   saveChats();
+   renderHistory();
+   renderChat();
+  };
+
+  row.append(title,del);
+  row.onclick=()=>{
+   currentId=chat.id;
+   renderHistory();
+   renderChat();
+  };
+  box.appendChild(row);
+ });
+}
+
+function renderChat(){
+ messages.innerHTML="";
+ const chat=activeChat();
+ if(!chat||!chat.messages.length){
+  showWelcome();
+  return;
+ }
+ chat.messages.forEach(m=>{
+  if(m.type==="image"){
+   addImage(m.data,m.mime);
+  }else{
+   addText(m.text,m.type);
+  }
+ });
+}
+
+function saveMessage(type,text,data=null,mime=null){
+ const chat=activeChat();
+ if(!chat)return;
+ chat.messages.push({type,text,data,mime});
+ if(chat.title==="Nuevo chat"&&type==="user"){
+  chat.title=text.slice(0,32)||"Nuevo chat";
+ }
+ saveChats();
+ renderHistory();
+}
+
+/* BIENVENIDA */
+
+function showWelcome(){
+ messages.innerHTML="";
+ const section=document.createElement("section");
+ section.className="welcome";
+
+ const h=document.createElement("h1");
+ h.innerHTML=mode==="chat"
+  ?"Pensá. Preguntá. <span>Creá.</span>"
+  :"Imaginá y <span>creá.</span>";
+
+ const p=document.createElement("p");
+ p.textContent=mode==="chat"
+  ?"Un espacio para aprender, programar, investigar y desarrollar ideas."
+  :"Describí una imagen y dejá que la inteligencia artificial la transforme en una creación.";
+
+ const suggestions=document.createElement("div");
+ suggestions.className="suggestions";
+
+ const ideas=mode==="chat"
+  ?["Explicame algo difícil de forma sencilla","Ayudame a programar una aplicación","Dame ideas para un proyecto"]
+  :["Un paisaje futurista cinematográfico","Un conejo en un jardín mágico","Un diseño minimalista para una app"];
+
+ ideas.forEach(text=>{
+  const b=document.createElement("button");
+  b.className="suggestion";
+  b.textContent=text;
+  b.onclick=()=>{prompt.value=text;send();};
+  suggestions.appendChild(b);
+ });
+
+ section.append(h,p,suggestions);
+ messages.appendChild(section);
+}
+
+function switchMode(next){
+ if(busy)return;
+ mode=next;
+ $("chatMode").classList.toggle("active",mode==="chat");
+ $("imageMode").classList.toggle("active",mode==="image");
+ $("attach").style.display=mode==="image"?"block":"none";
+ prompt.placeholder=mode==="image"?"Describí la imagen que querés crear...":"Escribí tu mensaje...";
+ clearAttachment();
+ showWelcome();
+}
+
+/* ADJUNTOS */
+
+function clearAttachment(){
+ attachment=null;
+ $("fileInput").value="";
+ $("preview").classList.remove("active");
+ $("previewImg").removeAttribute("src");
+}
+
+$("attach").onclick=()=>{if(!busy)$("fileInput").click();};
+
+$("fileInput").onchange=event=>{
+ const file=event.target.files[0];
+ if(!file)return;
+ if(!["image/png","image/jpeg","image/webp"].includes(file.type)){
+  addText("Formato no compatible. Usá PNG, JPG o WEBP.","bot");
+  return;
+ }
+ if(file.size>8*1024*1024){
+  addText("La imagen supera el límite de 8 MB.","bot");
+  return;
+ }
+ attachment=file;
+ $("previewImg").src=URL.createObjectURL(file);
+ $("previewName").textContent=file.name;
+ $("preview").classList.add("active");
+};
+$("removeImage").onclick=clearAttachment;
+
+function fileBase64(file){
+ return new Promise((resolve,reject)=>{
+  const reader=new FileReader();
+  reader.onload=()=>resolve(String(reader.result).split(",")[1]);
+  reader.onerror=()=>reject(new Error("No se pudo leer el archivo."));
+  reader.readAsDataURL(file);
+ });
+}
+
+/* CHAT CON REINTENTOS Y RESPALDO */
+
+async function chatRequest(text){
+ const chat=activeChat();
+ const history=chat.messages
+  .filter(m=>m.type==="user"||m.type==="bot")
+  .slice(-20)
+  .map(m=>({
+   role:m.type==="user"?"user":"model",
+   parts:[{text:m.text}]
+  }));
+
+ history.push({role:"user",parts:[{text}]});
+
+ let lastError=null;
+
+ for(const model of chatModels){
+  for(let attempt=0;attempt<2;attempt++){
+   try{
+    setStatus("Conectando con "+model.replace("models/","")+"...");
+    const response=await fetchTimeout(
+     API+"/"+model+":generateContent",
+     {
+      method:"POST",
+      headers:{
+       "Content-Type":"application/json",
+       "x-goog-api-key":key
+      },
+      body:JSON.stringify({
+       contents:history,
+       generationConfig:{
+        temperature:0.75,
+        maxOutputTokens:3000
+       }
+      })
+     },60000
+    );
+
+    const data=await responseData(response);
+    const answer=data.candidates?.[0]?.content?.parts
+     ?.map(p=>p.text||"").join("").trim();
+
+    if(!answer)throw new Error("El modelo no devolvió texto.");
+    return answer;
+
+   }catch(error){
+    lastError=error;
+    if(!isTemporary(error))throw error;
+    setStatus("Modelo ocupado. Probando alternativa...");
+    await sleep(retryDelay);
+    retryDelay=Math.min(retryDelay*1.5,5000);
+   }
+  }
+ }
+ throw lastError||new Error("No hay modelos disponibles.");
+}
+
+/* GENERACIÓN DE IMÁGENES */
+
+async function imageRequest(text){
+ if(!imageModels.length){
+  throw new Error("Tu API Key no muestra modelos de generación de imágenes compatibles.");
+ }
+
+ const parts=[];
+ if(attachment){
+  parts.push({
+   inlineData:{
+    mimeType:attachment.type,
+    data:await fileBase64(attachment)
+   }
+  });
+  parts.push({text:"Editá la imagen siguiendo esta instrucción: "+text});
+ }else{
+  parts.push({text:"Generá una imagen basada en esta descripción: "+text});
+ }
+
+ let lastError=null;
+
+ for(const model of imageModels){
+  try{
+   setStatus("Generando imagen con "+model.replace("models/","")+"...");
+   const response=await fetchTimeout(
+    API+"/"+model+":generateContent",
+    {
+     method:"POST",
+     headers:{
+      "Content-Type":"application/json",
+      "x-goog-api-key":key
+     },
+     body:JSON.stringify({
+      contents:[{parts}],
+      generationConfig:{responseModalities:["TEXT","IMAGE"]}
+     })
+    },120000
+   );
+
+   const data=await responseData(response);
+   const output=data.candidates?.[0]?.content?.parts||[];
+   const result=output.find(p=>p.inlineData?.data);
+
+   if(!result){
+    const textResult=output.find(p=>p.text)?.text;
+    throw new Error(textResult||"El modelo no devolvió una imagen.");
+   }
+
+   return {
+    data:result.inlineData.data,
+    mime:result.inlineData.mimeType||"image/png"
+   };
+
+  }catch(error){
+   lastError=error;
+   if(!isTemporary(error))throw error;
+   setStatus("Modelo de imágenes ocupado. Probando otro...");
+   await sleep(1800);
+  }
+ }
+ throw lastError||new Error("No se pudo generar la imagen.");
+}
+
+/* ENVÍO */
+
+async function send(){
+ if(busy)return;
+ const text=prompt.value.trim();
+ if(!text&&!attachment)return;
+
+ if(!key){
+  openKeyModal();
+  return;
+ }
+ if(mode==="chat"&&!text)return;
+
+ const userText=text||(attachment?"Imagen adjunta":"");
+ prompt.value="";
+ prompt.style.height="40px";
+
+ busy=true;
+ lockUI(true);
+
+ if(mode==="chat"){
+  addText(userText,"user");
+  saveMessage("user",userText);
+ }else{
+  addText(userText,"user");
+ }
+
+ typing();
+
+ try{
+  if(mode==="chat"){
+   const answer=await chatRequest(text);
+   stopTyping();
+   addText(answer,"bot");
+   saveMessage("bot",answer);
+  }else{
+   const image=await imageRequest(text);
+   stopTyping();
+   addImage(image.data,image.mime);
+   saveMessage("image","",image.data,image.mime);
+  }
+  setStatus("Listo");
+  retryDelay=1200;
+ }catch(error){
+  stopTyping();
+  const message="No se pudo completar: "+error.message;
+  addText(message,"bot");
+  if(mode==="chat")saveMessage("bot",message);
+  setStatus("Se produjo un error");
+ }finally{
+  busy=false;
+  lockUI(false);
+  clearAttachment();
+ }
+}
+
+function lockUI(value){
+ ["send","attach","createChat","chatMode","imageMode","keyButton"].forEach(id=>{
+  $(id).disabled=value;
+ });
+}
+
+function openKeyModal(){
+ $("keyInput").value="";
+ $("keyStatus").textContent="";
+ $("cancelKey").style.display=key?"block":"none";
+ $("keyModal").classList.add("active");
+}
+
+function closeKeyModal(){
+ if(key)$("keyModal").classList.remove("active");
+}
+
+async function saveKey(){
+ const candidate=$("keyInput").value.trim();
+ if(!candidate){
+  $("keyStatus").textContent="Ingresá una API Key.";
+  return;
+ }
+
+ $("saveKey").disabled=true;
+ $("keyStatus").textContent="Verificando y detectando modelos...";
+
+ try{
+  const found=await connect(candidate);
+  key=candidate;
+  chatModels=found.chatsFound;
+  imageModels=found.imagesFound;
+
+  try{localStorage.setItem("zen_ultra_key",key);}catch{}
+
+  $("keyModal").classList.remove("active");
+  $("keyInput").value="";
+  $("keyStatus").textContent="";
+  setStatus("Conectado · "+chatModels.length+" modelos de chat · "+imageModels.length+" de imagen");
+
+ }catch(error){
+  $("keyStatus").textContent="Error: "+error.message;
+ }finally{
+  $("saveKey").disabled=false;
+ }
+}
+
+/* TEMA Y CONTROLES */
+
+$("chatMode").onclick=()=>switchMode("chat");
+$("imageMode").onclick=()=>switchMode("image");
+$("send").onclick=send;
+$("keyButton").onclick=openKeyModal;
+$("saveKey").onclick=saveKey;
+$("cancelKey").onclick=closeKeyModal;
+$("createChat").onclick=createNewChat;
+
+$("themeButton").onclick=()=>{
+ document.body.classList.toggle("dark");
+ try{localStorage.setItem("zen_ultra_dark",document.body.classList.contains("dark")?"1":"0");}catch{}
+};
+
+$("sidebarButton").onclick=()=>{
+ const sidebar=$("sidebar");
+ sidebar.style.display=sidebar.style.display==="none"?"flex":"none";
+};
+
+$("clearHistory").onclick=()=>{
+ if(!confirm("¿Eliminar todas las conversaciones guardadas?"))return;
+ chats=[];
+ createNewChat();
+};
+
+$("aboutButton").onclick=()=>{
+ addText("ZenChat Ultra\nInterfaz experimental conectada a Gemini.\nLos modelos disponibles dependen de tu API Key, región, cuota y disponibilidad de Google.","bot");
+};
+
+$("keyInput").onkeydown=e=>{
+ if(e.key==="Enter"){e.preventDefault();saveKey();}
+};
+
+prompt.onkeydown=e=>{
+ if(e.key==="Enter"&&!e.shiftKey){
+  e.preventDefault();
+  send();
+ }
+};
+
+prompt.oninput=()=>{
+ prompt.style.height="40px";
+ prompt.style.height=Math.min(prompt.scrollHeight,130)+"px";
+};
+
+/* ARRANQUE */
+
+async function initialize(){
+ try{
+  if(localStorage.getItem("zen_ultra_dark")==="1")document.body.classList.add("dark");
+ }catch{}
+
+ loadChats();
+ if(!chats.length)createNewChat();
+ else{
+  currentId=chats[0].id;
+  renderHistory();
+  renderChat();
+ }
+
+ $("attach").style.display="none";
+
+ let saved="";
+ try{saved=localStorage.getItem("zen_ultra_key")||"";}catch{}
+
+ if(saved){
+  setStatus("Verificando conexión guardada...");
+  try{
+   const found=await connect(saved);
+   key=saved;
+   chatModels=found.chatsFound;
+   imageModels=found.imagesFound;
+   setStatus("Conectado · modelos detectados");
+  }catch{
+   key="";
+   openKeyModal();
+   $("keyStatus").textContent="La clave guardada no se pudo verificar. Ingresá una nueva.";
+  }
+ }else{
+  openKeyModal();
+ }
+}
+
+initialize();
+</script>
+</body>
+</html>
