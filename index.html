@@ -1,0 +1,749 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>ZenChat</title>
+
+<style>
+:root {
+  --green:#147a54;
+  --green-dark:#0d6041;
+  --orange:#e58a3a;
+  --bg:#f7f8f7;
+  --text:#202820;
+  --muted:#7b857e;
+  --border:#e5e9e6;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:Arial,sans-serif;background:var(--bg);color:var(--text);
+  height:100dvh;overflow:hidden
+}
+button,textarea,input{font:inherit}
+button{cursor:pointer}
+.app{
+  height:100dvh;display:flex;flex-direction:column;
+  max-width:1000px;margin:auto;background:white
+}
+header{
+  min-height:65px;flex-shrink:0;display:flex;align-items:center;
+  justify-content:space-between;padding:0 14px;
+  border-bottom:1px solid var(--border);gap:8px
+}
+.logo{font-size:23px;font-weight:800;letter-spacing:-1px;white-space:nowrap}
+.logo span:first-child{color:var(--green)}
+.logo span:last-child{color:var(--orange)}
+.header-actions{display:flex;align-items:center;gap:6px}
+.small-btn,.close-chat{
+  border:1px solid var(--border);background:white;
+  border-radius:10px;color:var(--text)
+}
+.small-btn{padding:9px 10px;font-size:13px}
+.close-chat{width:36px;height:36px;font-size:22px;color:#777}
+.modebar{
+  display:flex;gap:8px;padding:12px 15px;
+  border-bottom:1px solid var(--border)
+}
+.mode-btn{
+  flex:1;border:1px solid var(--border);background:white;
+  padding:11px;border-radius:11px;color:var(--muted);
+  font-size:13px;font-weight:700
+}
+.mode-btn.active{background:#eaf4ee;border-color:var(--green);color:var(--green)}
+#messages{
+  flex:1;overflow-y:auto;padding:22px 17px;
+  display:flex;flex-direction:column;gap:18px;scroll-behavior:smooth
+}
+.welcome{margin:auto;text-align:center;max-width:420px;padding:20px}
+.welcome h1{font-size:29px;margin-bottom:10px}
+.welcome h1 span{color:var(--green)}
+.welcome p{color:var(--muted);line-height:1.6;font-size:14px}
+.suggestions{
+  display:flex;flex-wrap:wrap;justify-content:center;
+  gap:8px;margin-top:22px
+}
+.suggestion{
+  border:1px solid var(--border);background:white;
+  border-radius:20px;padding:10px 13px;font-size:13px
+}
+.message{
+  max-width:88%;padding:13px 15px;border-radius:16px;
+  line-height:1.55;font-size:15px;white-space:pre-wrap;
+  overflow-wrap:anywhere
+}
+.user{align-self:flex-end;background:var(--green);color:white;border-bottom-right-radius:4px}
+.bot{align-self:flex-start;background:#f1f4f1;color:var(--text);border-bottom-left-radius:4px}
+.image-result{
+  align-self:flex-start;max-width:min(90%,520px);
+  background:#f1f4f1;padding:10px;border-radius:15px
+}
+.image-result img{display:block;width:100%;border-radius:10px}
+.image-result a{
+  display:block;text-align:center;padding:11px;color:var(--green);
+  font-weight:700;text-decoration:none
+}
+.typing{
+  display:flex;gap:5px;padding:15px;background:#f1f4f1;
+  border-radius:15px;width:max-content
+}
+.typing i{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--green);animation:blink 1s infinite
+}
+.typing i:nth-child(2){animation-delay:.15s}
+.typing i:nth-child(3){animation-delay:.3s}
+@keyframes blink{
+  0%,80%,100%{opacity:.3;transform:translateY(0)}
+  40%{opacity:1;transform:translateY(-4px)}
+}
+.composer{
+  padding:12px 15px max(12px,env(safe-area-inset-bottom));
+  border-top:1px solid var(--border);background:white
+}
+.upload-preview{
+  display:none;align-items:center;gap:10px;margin-bottom:10px;
+  padding:8px;border:1px solid var(--border);border-radius:12px
+}
+.upload-preview.active{display:flex}
+.upload-preview img{width:48px;height:48px;object-fit:cover;border-radius:8px}
+.upload-preview span{font-size:12px;color:var(--muted);flex:1}
+.remove-file{border:0;background:none;color:#b34b40;font-size:20px;padding:5px}
+.input-box{
+  display:flex;align-items:flex-end;gap:8px;
+  border:1px solid #dce3dd;border-radius:17px;padding:9px
+}
+#prompt{
+  flex:1;resize:none;border:none;outline:none;
+  min-height:38px;max-height:120px;padding:9px 5px;font-size:15px
+}
+#send{
+  width:42px;height:42px;border:none;border-radius:12px;
+  background:var(--green);color:white;font-size:20px
+}
+#send:disabled{opacity:.5}
+#attach{
+  width:40px;height:42px;border:1px solid var(--border);
+  background:white;border-radius:12px;color:var(--green);font-size:20px
+}
+.footer{text-align:center;font-size:11px;color:#929a94;margin-top:8px}
+#fileInput{display:none}
+
+/* API KEY */
+.overlay{
+  position:fixed;inset:0;background:rgba(12,20,15,.60);
+  display:none;align-items:center;justify-content:center;
+  padding:20px;z-index:1000
+}
+.overlay.active{display:flex}
+.modal{
+  width:100%;max-width:390px;background:white;
+  border-radius:20px;padding:24px;
+  box-shadow:0 20px 70px rgba(0,0,0,.2)
+}
+.modal h2{font-size:23px;margin-bottom:10px}
+.modal p{color:var(--muted);font-size:14px;line-height:1.5;margin-bottom:18px}
+#apiInput{
+  width:100%;padding:14px;border:1px solid var(--border);
+  border-radius:11px;outline:none;margin-bottom:12px
+}
+#apiInput:focus{border-color:var(--green)}
+#connect{
+  width:100%;padding:14px;border:0;border-radius:11px;
+  background:var(--green);color:white;font-weight:700
+}
+#connect:disabled{opacity:.6}
+#cancelKey{
+  width:100%;margin-top:9px;padding:11px;
+  border:1px solid var(--border);border-radius:11px;
+  background:white;display:none
+}
+#keyStatus{font-size:13px;margin-top:13px;line-height:1.5;color:var(--muted);overflow-wrap:anywhere}
+.modal a{color:var(--green);text-decoration:none}
+button:disabled{cursor:not-allowed}
+@media(max-width:390px){
+  .logo{font-size:19px}
+  .small-btn{font-size:11px;padding:9px 7px}
+  .header-actions{gap:4px}
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<header>
+  <div class="logo"><span>Zen</span><span>Chat</span></div>
+  <div class="header-actions">
+    <button class="small-btn" id="changeKey">API_KEY</button>
+    <button class="small-btn" id="newChat">Nuevo chat</button>
+    <button class="close-chat" id="closeChat" aria-label="Cerrar chat">×</button>
+  </div>
+</header>
+
+<nav class="modebar">
+  <button class="mode-btn active" id="chatMode">Chat</button>
+  <button class="mode-btn" id="imageMode">Crear imagen</button>
+</nav>
+
+<main id="messages"></main>
+
+<div class="composer">
+  <div class="upload-preview" id="uploadPreview">
+    <img id="previewImage" alt="Imagen seleccionada">
+    <span id="fileName">Imagen seleccionada</span>
+    <button class="remove-file" id="removeFile" aria-label="Quitar imagen">×</button>
+  </div>
+
+  <div class="input-box">
+    <button id="attach" title="Subir imagen" aria-label="Subir imagen">+</button>
+    <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp">
+    <textarea id="prompt" placeholder="Escribí tu mensaje..." rows="1"></textarea>
+    <button id="send" aria-label="Enviar">↑</button>
+  </div>
+  <div class="footer" id="footerText">ZenChat · Inteligencia artificial</div>
+</div>
+</div>
+
+<div class="overlay" id="keyModal">
+  <div class="modal">
+    <h2>Configurar ZenChat</h2>
+    <p>Conectá tu cuenta de Gemini. Pegá tu API Key para activar la inteligencia artificial.</p>
+    <input id="apiInput" type="password" placeholder="Pegá tu API Key aquí" autocomplete="off">
+    <button id="connect">Enter</button>
+    <button id="cancelKey">Cancelar</button>
+    <div id="keyStatus"></div>
+    <p style="margin-top:15px;margin-bottom:0">
+      ¿No tenés una clave?
+      <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Conseguir API Key</a>
+    </p>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const API_BASE="https://generativelanguage.googleapis.com/v1beta";
+const CHAT_PREFERRED="gemini-3.8-flash";
+const IMAGE_MODEL="gemini-3.1-flash-image";
+const TIMEOUT_MS=90000;
+
+const $=id=>document.getElementById(id);
+const messages=$("messages");
+const prompt=$("prompt");
+const modal=$("keyModal");
+const apiInput=$("apiInput");
+const keyStatus=$("keyStatus");
+
+let apiKey="";
+let chatModels=[];
+let conversation=[];
+let busy=false;
+let mode="chat";
+let selectedFile=null;
+
+/* PETICIONES */
+
+async function request(url,options={}){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),TIMEOUT_MS);
+  try{
+    return await fetch(url,{...options,signal:controller.signal});
+  }catch(error){
+    if(error.name==="AbortError"){
+      throw new Error("La solicitud tardó demasiado. Intentá nuevamente.");
+    }
+    throw new Error("No se pudo conectar con Google. Revisá internet.");
+  }finally{
+    clearTimeout(timer);
+  }
+}
+
+async function readResponse(response){
+  let data;
+  try{data=await response.json();}
+  catch{throw new Error("Google devolvió una respuesta no válida.");}
+  if(!response.ok){
+    const err=new Error(data.error?.message||"Google rechazó la solicitud.");
+    err.status=response.status;
+    throw err;
+  }
+  return data;
+}
+
+/* DETECTAR MODELOS DE CHAT */
+
+async function discoverModels(key){
+  const response=await request(API_BASE+"/models?pageSize=100",{
+    headers:{"x-goog-api-key":key}
+  });
+  const data=await readResponse(response);
+
+  const available=(data.models||[]).filter(model=>
+    (model.supportedGenerationMethods||[]).includes("generateContent") &&
+    !/image|embedding|tts|audio|veo/i.test(model.name)
+  );
+
+  if(!available.length){
+    throw new Error("No se encontraron modelos compatibles para conversar.");
+  }
+
+  const preferred=available.find(m=>m.name==="models/"+CHAT_PREFERRED);
+  const flash=available.filter(m=>/flash/i.test(m.name));
+  const ordered=[];
+
+  if(preferred)ordered.push(preferred.name);
+  flash.forEach(m=>{if(!ordered.includes(m.name))ordered.push(m.name)});
+  available.forEach(m=>{if(!ordered.includes(m.name))ordered.push(m.name)});
+
+  return ordered;
+}
+
+/* INTERFAZ */
+
+function showWelcome(){
+  if(mode==="image"){
+    messages.innerHTML=`
+      <section class="welcome">
+        <h1>Creá una <span>imagen</span></h1>
+        <p>Describí lo que querés imaginar. También podés subir una imagen para pedir una edición.</p>
+        <div class="suggestions">
+          <button class="suggestion" data-text="Un paisaje futurista con una ciudad iluminada de noche, estilo cinematográfico.">Ciudad futurista</button>
+          <button class="suggestion" data-text="Un conejo gris adorable en un jardín mágico, ilustración digital detallada.">Ilustración</button>
+          <button class="suggestion" data-text="Un fondo minimalista abstracto verde y naranja para una aplicación.">Fondo minimalista</button>
+        </div>
+      </section>`;
+  }else{
+    messages.innerHTML=`
+      <section class="welcome">
+        <h1>¿En qué puedo <span>ayudarte?</span></h1>
+        <p>Tu espacio de conversación inteligente. Preguntá, aprendé y explorá nuevas ideas.</p>
+        <div class="suggestions">
+          <button class="suggestion" data-text="Explicame cómo funciona la inteligencia artificial.">Inteligencia artificial</button>
+          <button class="suggestion" data-text="Ayudame a aprender programación desde cero.">Aprender programación</button>
+          <button class="suggestion" data-text="Dame una idea creativa para un proyecto.">Ideas creativas</button>
+        </div>
+      </section>`;
+  }
+  attachSuggestions();
+}
+
+function addMessage(text,type){
+  const element=document.createElement("div");
+  element.className="message "+type;
+  element.textContent=text;
+  messages.appendChild(element);
+  messages.scrollTop=messages.scrollHeight;
+}
+
+function addImage(data,mime){
+  const wrap=document.createElement("div");
+  wrap.className="image-result";
+
+  const img=document.createElement("img");
+  img.src="data:"+mime+";base64,"+data;
+  img.alt="Imagen generada por ZenChat";
+
+  const link=document.createElement("a");
+  link.href=img.src;
+  link.download="zenchat-imagen.png";
+  link.textContent="Guardar imagen";
+
+  wrap.append(img,link);
+  messages.appendChild(wrap);
+  messages.scrollTop=messages.scrollHeight;
+}
+
+function showTyping(){
+  const element=document.createElement("div");
+  element.className="typing";
+  element.id="typingIndicator";
+  element.innerHTML="<i></i><i></i><i></i>";
+  messages.appendChild(element);
+  messages.scrollTop=messages.scrollHeight;
+}
+
+function removeTyping(){
+  $("typingIndicator")?.remove();
+}
+
+/* API KEY */
+
+function openKeyModal(){
+  $("cancelKey").style.display=apiKey?"block":"none";
+  apiInput.value="";
+  keyStatus.textContent="";
+  modal.classList.add("active");
+}
+
+function closeKeyModal(){
+  if(!apiKey)return;
+  modal.classList.remove("active");
+  apiInput.value="";
+  keyStatus.textContent="";
+}
+
+async function connectKey(){
+  const newKey=apiInput.value.trim();
+  if(!newKey){
+    keyStatus.textContent="Pegá tu API Key primero.";
+    return;
+  }
+
+  const button=$("connect");
+  button.disabled=true;
+  keyStatus.textContent="Verificando conexión...";
+
+  try{
+    const models=await discoverModels(newKey);
+
+    apiKey=newKey;
+    chatModels=models;
+
+    try{
+      localStorage.setItem("zenchat_api_key",newKey);
+    }catch{
+      // La clave seguirá disponible durante esta sesión.
+    }
+
+    modal.classList.remove("active");
+    apiInput.value="";
+    keyStatus.textContent="";
+    conversation=[];
+    showWelcome();
+  }catch(error){
+    keyStatus.textContent="Error: "+error.message;
+  }finally{
+    button.disabled=false;
+  }
+}
+
+/* CAMBIAR MODO */
+
+function setMode(next){
+  if(busy)return;
+  mode=next;
+  $("chatMode").classList.toggle("active",mode==="chat");
+  $("imageMode").classList.toggle("active",mode==="image");
+
+  prompt.placeholder=mode==="image"
+    ?"Describí la imagen que querés crear..."
+    :"Escribí tu mensaje...";
+
+  $("attach").style.display=mode==="image"?"block":"none";
+  $("footerText").textContent=mode==="image"
+    ?"ZenChat · Generación de imágenes"
+    :"ZenChat · Inteligencia artificial";
+
+  clearSelectedFile();
+  showWelcome();
+}
+
+/* SUBIR IMAGEN */
+
+function clearSelectedFile(){
+  selectedFile=null;
+  $("fileInput").value="";
+  $("uploadPreview").classList.remove("active");
+  $("previewImage").removeAttribute("src");
+}
+
+$("attach").addEventListener("click",()=>{
+  if(mode==="image"&&!busy)$("fileInput").click();
+});
+
+$("fileInput").addEventListener("change",event=>{
+  const file=event.target.files[0];
+  if(!file)return;
+
+  if(!["image/png","image/jpeg","image/webp"].includes(file.type)){
+    addMessage("Usá una imagen PNG, JPG o WEBP.","bot");
+    clearSelectedFile();
+    return;
+  }
+
+  if(file.size>10*1024*1024){
+    addMessage("La imagen debe pesar menos de 10 MB.","bot");
+    clearSelectedFile();
+    return;
+  }
+
+  selectedFile=file;
+  $("previewImage").src=URL.createObjectURL(file);
+  $("fileName").textContent=file.name;
+  $("uploadPreview").classList.add("active");
+});
+
+$("removeFile").addEventListener("click",clearSelectedFile);
+
+function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>{
+      const result=String(reader.result);
+      resolve(result.split(",")[1]);
+    };
+    reader.onerror=()=>reject(new Error("No se pudo leer la imagen."));
+    reader.readAsDataURL(file);
+  });
+}
+
+/* CHAT CON RESPALDO DE MODELOS */
+
+async function askChat(text){
+  conversation.push({role:"user",parts:[{text}]});
+
+  let lastError=null;
+
+  for(const model of chatModels){
+    try{
+      const response=await request(
+        API_BASE+"/"+model+":generateContent",
+        {
+          method:"POST",
+          headers:{
+            "Content-Type":"application/json",
+            "x-goog-api-key":apiKey
+          },
+          body:JSON.stringify({
+            contents:conversation,
+            generationConfig:{
+              temperature:0.8,
+              maxOutputTokens:2048
+            }
+          })
+        }
+      );
+
+      const data=await readResponse(response);
+      const answer=data.candidates?.[0]?.content?.parts
+        ?.map(part=>part.text||"").join("").trim();
+
+      if(!answer)throw new Error("El modelo no devolvió una respuesta.");
+
+      conversation.push({role:"model",parts:[{text:answer}]});
+      return answer;
+
+    }catch(error){
+      lastError=error;
+      if(error.status!==429&&error.status!==500&&error.status!==503){
+        break;
+      }
+    }
+  }
+
+  conversation.pop();
+  throw lastError||new Error("Ningún modelo pudo responder.");
+}
+
+/* GENERAR O EDITAR IMAGEN */
+
+async function generateImage(text){
+  const parts=[];
+
+  if(selectedFile){
+    const base64=await fileToBase64(selectedFile);
+    parts.push({
+      inlineData:{
+        mimeType:selectedFile.type,
+        data:base64
+      }
+    });
+    parts.push({
+      text:"Editá la imagen proporcionada siguiendo esta instrucción: "+text
+    });
+  }else{
+    parts.push({text:"Generá una imagen siguiendo esta descripción: "+text});
+  }
+
+  const response=await request(
+    API_BASE+"/"+IMAGE_MODEL+":generateContent",
+    {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "x-goog-api-key":apiKey
+      },
+      body:JSON.stringify({
+        contents:[{parts}],
+        generationConfig:{
+          responseModalities:["TEXT","IMAGE"]
+        }
+      })
+    }
+  );
+
+  const data=await readResponse(response);
+  const outputParts=data.candidates?.[0]?.content?.parts||[];
+
+  let foundImage=false;
+
+  for(const part of outputParts){
+    if(part.text)addMessage(part.text,"bot");
+
+    if(part.inlineData?.data){
+      addImage(
+        part.inlineData.data,
+        part.inlineData.mimeType||"image/png"
+      );
+      foundImage=true;
+    }
+  }
+
+  if(!foundImage){
+    const reason=data.promptFeedback?.blockReason;
+    throw new Error(reason
+      ?"La solicitud fue bloqueada: "+reason
+      :"El modelo respondió, pero no devolvió una imagen. Revisá que tu API Key tenga acceso al modelo de imágenes."
+    );
+  }
+}
+
+/* ENVIAR */
+
+async function send(){
+  if(busy)return;
+
+  const text=prompt.value.trim();
+  if(!text&&!selectedFile)return;
+
+  if(!apiKey){
+    openKeyModal();
+    return;
+  }
+
+  if(mode==="chat"&&!text)return;
+
+  prompt.value="";
+  prompt.style.height="38px";
+
+  busy=true;
+  $("send").disabled=true;
+  $("newChat").disabled=true;
+  $("closeChat").disabled=true;
+  $("chatMode").disabled=true;
+  $("imageMode").disabled=true;
+  $("attach").disabled=true;
+
+  addMessage(
+    text||(selectedFile?"Describí una edición para esta imagen.":""),
+    "user"
+  );
+
+  showTyping();
+
+  try{
+    if(mode==="chat"){
+      const answer=await askChat(text);
+      removeTyping();
+      addMessage(answer,"bot");
+    }else{
+      await generateImage(text);
+      removeTyping();
+    }
+  }catch(error){
+    removeTyping();
+    addMessage("No se pudo completar la solicitud: "+error.message,"bot");
+  }finally{
+    busy=false;
+    $("send").disabled=false;
+    $("newChat").disabled=false;
+    $("closeChat").disabled=false;
+    $("chatMode").disabled=false;
+    $("imageMode").disabled=false;
+    $("attach").disabled=false;
+    if(mode==="image")clearSelectedFile();
+    prompt.focus();
+  }
+}
+
+/* CHAT NUEVO */
+
+function newChat(){
+  if(busy)return;
+  conversation=[];
+  prompt.value="";
+  clearSelectedFile();
+  showWelcome();
+}
+
+function closeChat(){
+  if(busy)return;
+  conversation=[];
+  prompt.value="";
+  clearSelectedFile();
+  showWelcome();
+  prompt.blur();
+}
+
+function attachSuggestions(){
+  document.querySelectorAll(".suggestion").forEach(button=>{
+    button.addEventListener("click",()=>{
+      prompt.value=button.dataset.text;
+      send();
+    });
+  });
+}
+
+/* INICIO */
+
+async function initialize(){
+  showWelcome();
+  $("attach").style.display="none";
+
+  let savedKey=null;
+  try{savedKey=localStorage.getItem("zenchat_api_key");}
+  catch{}
+
+  if(savedKey){
+    apiKey=savedKey;
+    keyStatus.textContent="Verificando clave guardada...";
+    try{
+      chatModels=await discoverModels(savedKey);
+    }catch{
+      apiKey="";
+      openKeyModal();
+      keyStatus.textContent="La clave guardada no se pudo verificar. Ingresá una nueva.";
+      return;
+    }
+  }else{
+    openKeyModal();
+  }
+}
+
+/* EVENTOS */
+
+$("changeKey").addEventListener("click",openKeyModal);
+$("connect").addEventListener("click",connectKey);
+$("cancelKey").addEventListener("click",closeKeyModal);
+$("newChat").addEventListener("click",newChat);
+$("closeChat").addEventListener("click",closeChat);
+$("send").addEventListener("click",send);
+$("chatMode").addEventListener("click",()=>setMode("chat"));
+$("imageMode").addEventListener("click",()=>setMode("image"));
+
+apiInput.addEventListener("keydown",event=>{
+  if(event.key==="Enter"){
+    event.preventDefault();
+    connectKey();
+  }
+});
+
+prompt.addEventListener("keydown",event=>{
+  if(event.key==="Enter"&&!event.shiftKey){
+    event.preventDefault();
+    send();
+  }
+});
+
+prompt.addEventListener("input",()=>{
+  prompt.style.height="38px";
+  prompt.style.height=Math.min(prompt.scrollHeight,120)+"px";
+});
+
+initialize();
+</script>
+</body>
+</html>
